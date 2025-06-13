@@ -7,19 +7,19 @@ import fs from "fs";
 // Load configuration from config.json
 const config = JSON.parse(fs.readFileSync("./c.json", "utf-8"));
 
-const url = "https://blog.cybertoolhub.space/";
+const url = "https://global.crypticx.store/";
 
-const MIN_BOTS = 12; // Minimum number of bots per batch
-const MAX_BOTS = 12; // Maximum number of bots per batch
+const MIN_BOTS = 2; // Minimum number of bots per batch
+const MAX_BOTS = 2; // Maximum number of bots per batch
 
 // Define the weighted locations for generating usernames
 const weightedLocations = {
-  se: 20,
+  se: 10,
   ua: 2,
   at: 2,
   fr: 4,
   ca: 3,
-  us: 30,
+  us: 40,
   uk: 3,
   dk: 5,
 };
