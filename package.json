@@ -1,0 +1,28 @@
+{
+  "name": "Browser",
+  "version": "1.0.0",
+  "description": "",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "concurrently \"node go.js\" \"node gomac.js\""
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@cliqz/adblocker-playwright": "^1.31.2",
+    "axios": "^1.7.9",
+    "browser-pool": "^3.1.4",
+    "concurrently": "^8.2.2",
+    "dotenv": "^16.4.5",
+    "fingerprint-generator": "^2.1.54",
+    "fingerprint-injector": "^2.1.54",
+    "https-proxy-agent": "^7.0.5",
+    "moment-timezone": "^0.5.45",
+    "playwright": "^1.46.0",
+    "request-promise": "^4.2.6",
+    "url": "^0.11.4"
+  }
+}
