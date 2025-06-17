@@ -9,8 +9,8 @@ const config = JSON.parse(fs.readFileSync("./c.json", "utf-8"));
 
 const url = "https://global.crypticx.store/";
 
-const MIN_BOTS = 2; // Minimum number of bots per batch
-const MAX_BOTS = 2; // Maximum number of bots per batch
+const MIN_BOTS = 10; // Minimum number of bots per batch
+const MAX_BOTS = 10; // Maximum number of bots per batch
 
 // Define the weighted locations for generating usernames
 const weightedLocations = {
