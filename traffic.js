@@ -464,7 +464,7 @@ const startWorker = async (id, urlObj) => {
         setTimeout(() => {
           console.log(`Worker ${id} (${urlObj.url}) timed out after 90s`);
           reject(new Error("Worker timeout"));
-        }, 90000)
+        }, 120000)
       ),
     ]);
   } catch (err) {
