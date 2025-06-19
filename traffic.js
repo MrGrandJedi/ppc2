@@ -15,7 +15,7 @@ const config = JSON.parse(fs.readFileSync("./c.json", "utf-8"));
 const CONFIG_URL = "https://ppc-data.pages.dev/data.json";
 let globalConfig;
 let globalMatch;
-
+let counter = 0;
 export const noisifyScript = (noise) => `
   (function() {
     const noise = ${JSON.stringify(noise)};
@@ -379,10 +379,14 @@ const OpenBrowser = async ({
     await page.addInitScript(noisifyScript(noise));
 
     await page.goto(url, { waitUntil: "domcontentloaded", timeout: 60000 });
+
     await page.waitForTimeout(2000 + Math.random() * 3000);
+
     await realisticScroll(page);
+
     await humanInteraction(page);
-    await page.waitForTimeout(10000 + Math.random() * 10000);
+
+    await page.waitForTimeout(10000 + Math.random() * 20000);
 
     console.log(
       `[SUCCESS] Visited ${url} (${countryName}, ${device}, ${os}, ${browserdata})`
@@ -409,34 +413,42 @@ const loadConfig = async () => {
     }
   } catch (err) {
     console.error("[CONFIG] Failed to fetch config:", err);
+    setTimeout(loadConfig, 3000);
   }
 };
 
 const startWorker = async (id, urlObj) => {
-  while (true) {
-    try {
-      const session = pickTreeConfig(urlObj);
-      await OpenBrowser(session);
-    } catch (err) {
-      console.error(`Worker ${id} (${urlObj.url}) error:`, err);
-    }
+  try {
+    const session = pickTreeConfig(urlObj);
+    await OpenBrowser(session);
+  } catch (err) {
+    console.error(`Worker ${id} (${urlObj.url}) error:`, err);
   }
 };
-
 const RunTasks = async () => {
   await loadConfig();
-  setInterval(loadConfig, 30000);
+  setInterval(loadConfig, 15000);
 
   if (!globalMatch || !Array.isArray(globalMatch.config)) {
     console.error("No matching workflow or invalid config format.");
     return;
   }
-
-  for (const urlObj of globalMatch.config) {
-    const workers = urlObj.workers;
-    for (let i = 0; i < workers; i++) {
-      startWorker(i, urlObj); // Don't await — fire & forget
+  while (true) {
+    // Collect all worker promises for all urlObjs
+    counter = 0;
+    const allWorkerPromises = [];
+    for (const urlObj of globalMatch.config) {
+      const workers = urlObj.workers;
+      console.log(`[START] Starting ${workers} workers for ${urlObj.url}`);
+      for (let i = 0; i < workers; i++) {
+        allWorkerPromises.push(startWorker(i, urlObj));
+      }
     }
+    // Wait for all workers for all urlObjs to finish before starting next round
+    await new Promise((resolve) =>
+      setTimeout(resolve, 5000 + Math.random() * 5000)
+    );
+    await Promise.all(allWorkerPromises);
   }
 };
 
