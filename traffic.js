@@ -313,29 +313,36 @@ const OpenBrowser = async ({
   countryName,
 }) => {
   if (
-    (!url || !code || !device || !screen || !os || !browserdata || !username,
-    !countryName)
+    !url ||
+    !code ||
+    !device ||
+    !screen ||
+    !os ||
+    !browserdata ||
+    !username ||
+    !countryName
   ) {
-    console.error("Invalid configuration for OpenBrowser:", {
-      url,
-      code,
-      device,
-      screen,
-      os,
-      browserdata,
-      username,
-      countryName,
-    });
-    return;
+    throw new Error(
+      "Invalid configuration for OpenBrowser: Missing required parameters"
+    );
   }
+
   let browser = null;
   let context = null;
-  let wasSuccessful = false;
-
-  const timezone = await checkTz(username);
-  if (!timezone) return;
+  let page = null;
 
   try {
+    const timezone = await Promise.race([
+      checkTz(username),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error("Timezone check timeout")), 30000)
+      ),
+    ]);
+
+    if (!timezone) {
+      throw new Error("Failed to get timezone");
+    }
+
     const noise = generateNoise();
     browser = await chromium.launch({
       headless: true,
@@ -360,8 +367,8 @@ const OpenBrowser = async ({
 
     const randomReferer = getRandomReferer();
     const userAgent = new UserAgent();
+    page = await context.newPage();
 
-    const page = await context.newPage();
     await page.setExtraHTTPHeaders({
       ...realisticHeaders,
       "user-agent": userAgent.toString(),
@@ -378,53 +385,95 @@ const OpenBrowser = async ({
 
     await page.addInitScript(noisifyScript(noise));
 
-    await page.goto(url, { waitUntil: "domcontentloaded", timeout: 60000 });
+    await Promise.race([
+      page.goto(url, { waitUntil: "domcontentloaded" }),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error("Page load timeout")), 60000)
+      ),
+    ]);
 
     await page.waitForTimeout(2000 + Math.random() * 3000);
 
     await realisticScroll(page);
-
     await humanInteraction(page);
-
-    await page.waitForTimeout(10000 + Math.random() * 20000);
+    await page.waitForTimeout(10000 + Math.random() * 25000);
 
     console.log(
       `[SUCCESS] Visited ${url} (${countryName}, ${device}, ${os}, ${browserdata})`
     );
-    wasSuccessful = true;
-  } catch {
+  } catch (err) {
+    console.error(`[ERROR] Browser session failed: ${err.message}`);
+    throw err;
   } finally {
     try {
-      if (context) await context.close();
-      if (browser) await browser.close();
+      if (page) await page.close().catch(() => {});
+      if (context) await context.close().catch(() => {});
+      if (browser) await browser.close().catch(() => {});
     } catch (err) {
-      console.error("Error closing browser/context:", err);
+      console.error("Error during cleanup:", err.message);
     }
   }
 };
 
 const loadConfig = async () => {
   try {
-    const res = await fetch(CONFIG_URL);
+    const configPromise = fetch(CONFIG_URL);
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error("Config fetch timeout")), 10000)
+    );
+
+    const res = await Promise.race([configPromise, timeoutPromise]);
     const json = await res.json();
-    if (Array.isArray(json)) {
-      // globalConfig = json;
-      globalMatch = json.find((item) => item.workflow === config.workflow);
+
+    if (!Array.isArray(json)) {
+      throw new Error("Invalid config format: expected array");
+    }
+
+    // Find matching workflow
+    globalMatch = json.find((item) => item.workflow === config.workflow);
+
+    if (!globalMatch) {
+      throw new Error(`No matching workflow found for: ${config.workflow}`);
+    }
+
+    if (!Array.isArray(globalMatch.config)) {
+      throw new Error("Invalid workflow config format: expected array");
     }
   } catch (err) {
-    console.error("[CONFIG] Failed to fetch config:", err);
+    console.error("[CONFIG] Failed to fetch/parse config:", err.message);
     setTimeout(loadConfig, 3000);
   }
 };
 
 const startWorker = async (id, urlObj) => {
   try {
-    const session = pickTreeConfig(urlObj);
-    await OpenBrowser(session);
+    const workerPromise = (async () => {
+      try {
+        const session = pickTreeConfig(urlObj);
+        await OpenBrowser(session);
+      } catch (err) {
+        console.error(`Worker ${id} (${urlObj.url}) error:`, err.message);
+        throw err;
+      }
+    })();
+
+    // Use Promise.race to handle timeout cleanly
+    await Promise.race([
+      workerPromise,
+      new Promise((_, reject) =>
+        setTimeout(() => {
+          console.log(`Worker ${id} (${urlObj.url}) timed out after 90s`);
+          reject(new Error("Worker timeout"));
+        }, 90000)
+      ),
+    ]);
   } catch (err) {
-    console.error(`Worker ${id} (${urlObj.url}) error:`, err);
+    if (err.message !== "Worker timeout") {
+      console.error(`Worker ${id} (${urlObj.url}) failed:`, err.message);
+    }
   }
 };
+
 const RunTasks = async () => {
   await loadConfig();
   setInterval(loadConfig, 15000);
