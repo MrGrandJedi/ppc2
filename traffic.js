@@ -14,6 +14,7 @@ const config = JSON.parse(fs.readFileSync("./c.json", "utf-8"));
 
 const CONFIG_URL = "https://ppc-data.pages.dev/data.json";
 let globalConfig;
+let globalMatch;
 
 export const noisifyScript = (noise) => `
   (function() {
@@ -403,7 +404,8 @@ const loadConfig = async () => {
     const res = await fetch(CONFIG_URL);
     const json = await res.json();
     if (Array.isArray(json)) {
-      globalConfig = json;
+      // globalConfig = json;
+      globalMatch = json.find((item) => item.workflow === config.workflow);
     }
   } catch (err) {
     console.error("[CONFIG] Failed to fetch config:", err);
@@ -425,14 +427,12 @@ const RunTasks = async () => {
   await loadConfig();
   setInterval(loadConfig, 30000);
 
-  const match = globalConfig.find((item) => item.workflow === config.workflow);
-
-  if (!match || !Array.isArray(match.config)) {
+  if (!globalMatch || !Array.isArray(globalMatch.config)) {
     console.error("No matching workflow or invalid config format.");
     return;
   }
 
-  for (const urlObj of match?.config) {
+  for (const urlObj of globalMatch.config) {
     const workers = urlObj.workers;
     for (let i = 0; i < workers; i++) {
       startWorker(i, urlObj); // Don't await — fire & forget
