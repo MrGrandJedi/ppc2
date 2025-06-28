@@ -15,7 +15,7 @@ const config = JSON.parse(fs.readFileSync("./c.json", "utf-8"));
 const CONFIG_URL = "https://ppc-data.pages.dev/data.json";
 let globalConfig;
 let globalMatch;
-let counter = 0;
+let counters = 0;
 export const noisifyScript = (noise) => `
   (function() {
     const noise = ${JSON.stringify(noise)};
