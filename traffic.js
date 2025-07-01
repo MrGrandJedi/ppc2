@@ -476,7 +476,7 @@ const startWorker = async (id, urlObj) => {
 
 const RunTasks = async () => {
   await loadConfig();
-  setInterval(loadConfig, 15000);
+  setInterval(loadConfig, 300000);
 
   if (!globalMatch || !Array.isArray(globalMatch.config)) {
     console.error("No matching workflow or invalid config format.");
