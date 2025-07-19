@@ -8,28 +8,30 @@ on:
     branches:
       - main
 env:
-  JEDI : ${{ secrets.JEDI }}
+  JEDI: ${{ secrets.JEDI }}
   CI: true
-          
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   install-and-run:
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-    - name: Set up Node.js
-      uses: actions/setup-node@v2
-      with:
-        node-version: '18.18.0'  # Or another version that your project uses
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: "18.18.0" # Or another version that your project uses
 
-    - name: Install dependencies
-      run: |
-        node -e "console.log(process.env.JEDI)"
-        npm install
-        npx playwright install
-      
+      - name: Install dependencies
+        run: |
+          node -e "console.log(process.env.JEDI)"
+          npm install
+          npx playwright install
 
-    - name: Run the script
-      run: |
-        node traffic.js  # or node index.js if you want to run without the script
+      - name: Run the script
+        run: |
+          node traffic.js  # or node index.js if you want to run without the script
