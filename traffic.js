@@ -430,8 +430,9 @@ const OpenBrowser = async ({
 const loadConfig = async () => {
   try {
     const configPromise = fetch(CONFIG_URL);
+    // timeout for 3 minutes
     const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error("Config fetch timeout")), 10000)
+      setTimeout(() => reject(new Error("Config fetch timeout")), 180000)
     );
 
     const res = await Promise.race([configPromise, timeoutPromise]);
