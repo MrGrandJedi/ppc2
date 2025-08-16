@@ -13,6 +13,7 @@ const JEDI = process.env.JEDI;
 const config = JSON.parse(fs.readFileSync("./c.json", "utf-8"));
 
 const CONFIG_URL = "https://ppc-data.pages.dev/data.json";
+// const CONFIG_URL = "https://pastebin.com/raw/B2ZY9UZF";
 let globalConfig;
 let globalMatch;
 let counter = 0;
@@ -144,7 +145,7 @@ const weightedPick = (arr) => {
   return arr[arr.length - 1];
 };
 
-const pickTreeConfig = (urlObj) => {
+const pickTreeConfig = (urlObj, presets) => {
   const url = urlObj.url.toLowerCase();
 
   const country = weightedPick(urlObj.countries);
@@ -153,11 +154,17 @@ const pickTreeConfig = (urlObj) => {
   const code = country.code.toLowerCase();
   const countryName = country.name.toLowerCase();
 
-  const device = weightedPick(country.devices);
+  let device = weightedPick(country.devices);
   if (!device) throw new Error("No device picked");
 
-  const screen = weightedPick(device.screens) || { width: 1280, height: 720 };
+  // 🔹 Resolve preset if defined
+  let presetName = null;
+  if (device.preset && presets[device.preset]) {
+    presetName = device.preset;
+    device = { ...device, ...presets[device.preset] };
+  }
 
+  const screen = weightedPick(device.screens) || { width: 1280, height: 720 };
   const os = weightedPick(device.os);
   if (!os) throw new Error("No OS picked");
 
@@ -165,15 +172,20 @@ const pickTreeConfig = (urlObj) => {
   if (!browser) throw new Error("No browser picked");
 
   const rand = Math.floor(10000 + Math.random() * 900000);
-
   const username = config.proxyUser
     .replace("%CODE%", code)
     .replace("%RAND%", rand);
 
+  // 🔹 ensure only "desktop" or "mobile" is passed to fingerprint-injector
+  let deviceType = "desktop";
+  if (presetName && presetName.toLowerCase().includes("mobile")) {
+    deviceType = "mobile";
+  }
+
   return {
     url,
     code,
-    device: device.name.toLowerCase(),
+    device: deviceType, // 👈 safe value for fingerprint-injector
     screen: { width: screen.width, height: screen.height },
     os: os.name.toLowerCase(),
     browserdata: browser.name.toLowerCase(),
@@ -449,7 +461,11 @@ const startWorker = async (id, urlObj) => {
   try {
     const workerPromise = (async () => {
       try {
-        const session = pickTreeConfig(urlObj);
+        const session = pickTreeConfig(urlObj, globalMatch.devicePresets || {});
+        console.log(
+          `[SESSION] url=${session.url}, country=${session.countryName} (${session.code}), device=${session.device}, os=${session.os}, browser=${session.browserdata}, screen=${session.screen.width}x${session.screen.height}, user=${session.username}`
+        );
+
         await OpenBrowser(session);
       } catch (err) {
         console.error(`Worker ${id} (${urlObj.url}) error:`, err.message);
@@ -462,7 +478,7 @@ const startWorker = async (id, urlObj) => {
       workerPromise,
       new Promise((_, reject) =>
         setTimeout(() => {
-          console.log(`Worker ${id} (${urlObj.url}) timed out after 90s`);
+          console.log(`Worker ${id} (${urlObj.url}) timed out after 2min`);
           reject(new Error("Worker timeout"));
         }, 120000)
       ),
