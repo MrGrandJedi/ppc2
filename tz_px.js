@@ -14,7 +14,7 @@ const DEFAULT_TIMEZONES = {
   fr: "Europe/Paris",
 };
 
-export const checkTz = async (username, retryCount = 2) => {
+export const checkTz = async (username, retryCount = 1) => {
   dotenv.config();
   const proxyHost = config.proxyHost;
   const proxyPort = config.proxyPort;
