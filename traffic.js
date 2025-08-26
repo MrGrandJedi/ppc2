@@ -198,7 +198,7 @@ const realisticHeaders = {
   accept:
     "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
   "accept-encoding": "gzip, deflate, br",
-  "accept-language": "en-US,en;q=0.9",
+
   "cache-control": "no-cache",
   pragma: "no-cache",
   "upgrade-insecure-requests": "1",
@@ -381,6 +381,14 @@ const OpenBrowser = async ({
     const userAgent = new UserAgent();
     page = await context.newPage();
 
+    // Add this dialog handler
+    await page.on("dialog", async (dialog) => {
+      console.log(
+        `Dialog appeared: ${dialog.type()} with message: ${dialog.message()}`
+      );
+      await dialog.dismiss().catch(() => {}); // Dismiss any dialogs that appear
+    });
+
     await page.setExtraHTTPHeaders({
       ...realisticHeaders,
       "user-agent": userAgent.toString(),
@@ -410,9 +418,7 @@ const OpenBrowser = async ({
     await humanInteraction(page);
     await page.waitForTimeout(10000 + Math.random() * 25000);
 
-    console.log(
-      `[SUCCESS] Visited ${url} (${countryName}, ${device}, ${os}, ${browserdata})`
-    );
+    console.log(`✅ ${countryName}, ${device}, ${os}, ${browserdata}`);
   } catch (err) {
     console.error(`[ERROR] Browser session failed: ${err.message}`);
     throw err;
@@ -463,9 +469,8 @@ const startWorker = async (id, urlObj) => {
     const workerPromise = (async () => {
       try {
         const session = pickTreeConfig(urlObj, globalMatch.devicePresets || {});
-        console.log(
-          `[SESSION] url=${session.url}, country=${session.countryName} (${session.code}), device=${session.device}, os=${session.os}, browser=${session.browserdata}, screen=${session.screen.width}x${session.screen.height}, user=${session.username}`
-        );
+        // make this log shorter only log country and device
+        console.log(`[SESSION] ${session.code}, ${session.device}`);
 
         await OpenBrowser(session);
       } catch (err) {
@@ -486,7 +491,7 @@ const startWorker = async (id, urlObj) => {
     ]);
   } catch (err) {
     if (err.message !== "Worker timeout") {
-      console.error(`Worker ${id} (${urlObj.url}) failed:`, err.message);
+      console.error(`${id} (${urlObj.url}) failed:`, err.message);
     }
   }
 };
@@ -505,7 +510,7 @@ const RunTasks = async () => {
     const allWorkerPromises = [];
     for (const urlObj of globalMatch.config) {
       const workers = urlObj.workers;
-      console.log(`[START] Starting ${workers} workers for ${urlObj.url}`);
+      console.log(`➤ ${workers}x ${urlObj.url}`);
       for (let i = 0; i < workers; i++) {
         allWorkerPromises.push(startWorker(i, urlObj));
       }
