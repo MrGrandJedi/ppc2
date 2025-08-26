@@ -34,7 +34,7 @@ export const checkTz = async (username, retryCount = 1) => {
         "https://white-water-a7d6.mahdiidrissi2022.workers.dev/",
         {
           httpsAgent: proxyAgent,
-          timeout: 5000, // Reduced timeout to 5 seconds
+          timeout: 10000, // Reduced timeout to 5 seconds
           validateStatus: (status) => status === 200, // Only accept 200 status
         }
       );
