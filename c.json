@@ -1,5 +1,5 @@
 {
-  "proxyHost": "148.113.161.141",
+  "proxyHost": "gw.netnut.net",
   "proxyPort": "5959",
   "proxyUser": "qualityser-res-%CODE%-sid-%RAND%",
   "workflow": 1
