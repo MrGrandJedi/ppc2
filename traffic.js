@@ -8,7 +8,7 @@ import fetch from "node-fetch";
 import axios from "axios";
 import { HttpsProxyAgent } from "https-proxy-agent";
 
-// Load environment variables from .env file
+// Load environment variables from .env files
 
 dotenv.config();
 const JEDI = process.env.JEDI;
@@ -593,3 +593,4 @@ const RunTasks = async () => {
 };
 
 RunTasks();
+
