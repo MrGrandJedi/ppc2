@@ -250,16 +250,6 @@ const pickTreeConfig = (urlObj, presets) => {
   });
 };
 
-const realisticHeaders = {
-  accept:
-    "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-  "accept-encoding": "gzip, deflate, br",
-
-  "cache-control": "no-cache",
-  pragma: "no-cache",
-  "upgrade-insecure-requests": "1",
-};
-
 const humanMouseMovements = [
   { type: "move", x: 100, y: 200, duration: 500 },
   { type: "click", x: 300, y: 400 },
@@ -335,15 +325,6 @@ const humanType = async (page, text) => {
   }
 };
 
-const realisticScroll = async (page) => {
-  const scrollSteps = Math.floor(Math.random() * 5) + 3;
-  for (let i = 0; i < scrollSteps; i++) {
-    const scrollDistance = Math.random() * 800 + 200;
-    await page.mouse.wheel(0, scrollDistance);
-    await page.waitForTimeout(Math.random() * 1000 + 500);
-  }
-};
-
 const humanInteraction = async (page) => {
   for (const action of humanMouseMovements) {
     if (action.type === "move") {
@@ -367,6 +348,15 @@ const humanInteraction = async (page) => {
       page,
       String.fromCharCode(65 + Math.floor(Math.random() * 26))
     );
+  }
+};
+
+const realisticScroll = async (page) => {
+  const scrollSteps = Math.floor(Math.random() * 5) + 3;
+  for (let i = 0; i < scrollSteps; i++) {
+    const scrollDistance = Math.random() * 800 + 200;
+    await page.mouse.wheel(0, scrollDistance);
+    await page.waitForTimeout(Math.random() * 1000 + 500);
   }
 };
 
@@ -413,7 +403,8 @@ const OpenBrowser = async ({
 
     const noise = generateNoise();
     browser = await chromium.launch({
-      headless: true,
+      headless: false,
+
       proxy: {
         server: `${config.proxyHost}:${config.proxyPort}`,
         username,
@@ -423,10 +414,20 @@ const OpenBrowser = async ({
 
     context = await newInjectedContext(browser, {
       fingerprintOptions: {
+        args: [
+          "--disable-extensions",
+          "--disable-blink-features=AutomationControlled",
+          "--disable-features=SafeBrowsing",
+          "--disable-features=IsolateOrigins,site-per-process",
+
+          "--disable-features=SafeBrowsing,SubresourceFilter,AdBlockClient,AdsBlock",
+          "--no-sandbox",
+          "--disable-client-side-phishing-detection",
+        ],
         devices: [device],
         browsers: [browserdata],
         operatingSystems: [os],
-        locales: [["en-US", "en-GB", "fr-FR"][Math.floor(Math.random() * 3)]],
+
         screen: { width: screen.width, height: screen.height },
       },
       mockWebRTC: true,
@@ -437,26 +438,9 @@ const OpenBrowser = async ({
     const userAgent = new UserAgent();
     page = await context.newPage();
 
-    // Add this dialog handler
-    await page.on("dialog", async (dialog) => {
-      console.log(
-        `Dialog appeared: ${dialog.type()} with message: ${dialog.message()}`
-      );
-      await dialog.dismiss().catch(() => {}); // Dismiss any dialogs that appear
-    });
-
     await page.setExtraHTTPHeaders({
-      ...realisticHeaders,
       "user-agent": userAgent.toString(),
-      referer: randomReferer,
-    });
-
-    await page.route("**/*", (route) => {
-      return ["image", "stylesheet", "font", "media"].includes(
-        route.request().resourceType()
-      )
-        ? route.abort()
-        : route.continue();
+      // referer: randomReferer,
     });
 
     await page.addInitScript(noisifyScript(noise));
@@ -471,8 +455,10 @@ const OpenBrowser = async ({
     await page.waitForTimeout(2000 + Math.random() * 3000);
 
     await realisticScroll(page);
+
     await humanInteraction(page);
-    await page.waitForTimeout(10000 + Math.random() * 25000);
+
+    await page.waitForTimeout(10000 + Math.random() * 20000);
 
     console.log(`✅ ${countryName}, ${device}, ${os}, ${browserdata}`);
   } catch (err) {
@@ -593,4 +579,3 @@ const RunTasks = async () => {
 };
 
 RunTasks();
-
