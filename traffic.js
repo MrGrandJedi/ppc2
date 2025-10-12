@@ -414,16 +414,6 @@ const OpenBrowser = async ({
 
     context = await newInjectedContext(browser, {
       fingerprintOptions: {
-        args: [
-          "--disable-extensions",
-          "--disable-blink-features=AutomationControlled",
-          "--disable-features=SafeBrowsing",
-          "--disable-features=IsolateOrigins,site-per-process",
-
-          "--disable-features=SafeBrowsing,SubresourceFilter,AdBlockClient,AdsBlock",
-          "--no-sandbox",
-          "--disable-client-side-phishing-detection",
-        ],
         devices: [device],
         browsers: [browserdata],
         operatingSystems: [os],
@@ -579,4 +569,5 @@ const RunTasks = async () => {
 };
 
 RunTasks();
+
 
