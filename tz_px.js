@@ -20,7 +20,8 @@ export const checkTz = async (username) => {
   const proxyPassword = process.env.JEDI;
 
   // Extract country code from username (assuming format contains country code)
+  // if not found in username, default to 'us'
   const countryCode = username.split("-")[2]?.toLowerCase();
-  const timezone = DEFAULT_TIMEZONES[countryCode] || "UTC";
+  const timezone = DEFAULT_TIMEZONES[countryCode] || DEFAULT_TIMEZONES["us"];
   return timezone;
 };
