@@ -404,6 +404,11 @@ const OpenBrowser = async ({
     const noise = generateNoise();
     browser = await chromium.launch({
       headless: true,
+        args: [
+    '--no-sandbox',
+    '--disable-setuid-sandbox',
+    '--disable-dev-shm-usage', // important in Docker/Replit
+  ],
       timeout: 240000,
       proxy: {
         server: `${config.proxyHost}:${config.proxyPort}`,
@@ -569,3 +574,4 @@ const RunTasks = async () => {
 };
 
 RunTasks();
+
