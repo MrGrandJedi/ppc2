@@ -404,7 +404,7 @@ const OpenBrowser = async ({
     const noise = generateNoise();
     browser = await chromium.launch({
       headless: true,
-
+      timeout: 240000,
       proxy: {
         server: `${config.proxyHost}:${config.proxyPort}`,
         username,
@@ -436,7 +436,7 @@ const OpenBrowser = async ({
     await page.addInitScript(noisifyScript(noise));
 
     await Promise.race([
-      page.goto(url, { waitUntil: "domcontentloaded" }),
+      page.goto(url, { waitUntil: "domcontentloaded", timeout: 60000 }),
       new Promise((_, reject) =>
         setTimeout(() => reject(new Error("Page load timeout")), 60000)
       ),
@@ -569,5 +569,3 @@ const RunTasks = async () => {
 };
 
 RunTasks();
-
-
