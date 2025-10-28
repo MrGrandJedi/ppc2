@@ -163,7 +163,7 @@ const checkProxyLoop = async (code, maxAttempts = 10) => {
     );
 
     try {
-      const resp = await axios.get("https://api.ipify.org?format=json", {
+      const resp = await axios.head("https://www.google.com/", {
         httpsAgent: agent,
         timeout: 10000,
         validateStatus: (s) => s === 200,
@@ -171,14 +171,14 @@ const checkProxyLoop = async (code, maxAttempts = 10) => {
         proxy: false,
       });
 
-      if (!resp.data || !resp.data.ip) {
+      if (resp.status !== 200) {
         lastError = `No ip in response: ${JSON.stringify(resp.data)}`;
 
         await new Promise((res) => setTimeout(res, 500));
         continue;
       }
 
-      return { username, proxyUrl, ip: resp.data.ip };
+      return { username, proxyUrl };
     } catch (err) {
       lastError =
         err && (err.code || err.message)
@@ -231,10 +231,10 @@ const pickTreeConfig = (urlObj, presets) => {
 
   // Start proxy verification using the async helper.
   // NOTE: we DO NOT mark pickTreeConfig as `async` — it will return a Promise here.
-  const proxyCheckPromise = checkProxyLoop(code, 10);
+  const proxyCheckPromise = checkProxyLoop(code, 2);
 
   // Return a Promise that resolves to the final session object.
-  return proxyCheckPromise.then(({ username, proxyUrl, ip }) => {
+  return proxyCheckPromise.then(({ username, proxyUrl }) => {
     return {
       url,
       code,
@@ -245,7 +245,6 @@ const pickTreeConfig = (urlObj, presets) => {
       username: username.toLowerCase(),
       countryName,
       proxyUrl,
-      proxyIp: ip,
     };
   });
 };
@@ -404,11 +403,11 @@ const OpenBrowser = async ({
     const noise = generateNoise();
     browser = await chromium.launch({
       headless: true,
-        args: [
-    '--no-sandbox',
-    '--disable-setuid-sandbox',
-    '--disable-dev-shm-usage', // important in Docker/Replit
-  ],
+      args: [
+        "--no-sandbox",
+        "--disable-setuid-sandbox",
+        "--disable-dev-shm-usage", // important in Docker/Replit
+      ],
       timeout: 240000,
       proxy: {
         server: `${config.proxyHost}:${config.proxyPort}`,
@@ -438,14 +437,17 @@ const OpenBrowser = async ({
       // referer: randomReferer,
     });
 
+    await page.route("**/*", (route) => {
+      return ["image", "stylesheet", "font", "media"].includes(
+        route.request().resourceType()
+      )
+        ? route.abort()
+        : route.continue();
+    });
+
     await page.addInitScript(noisifyScript(noise));
 
-    await Promise.race([
-      page.goto(url, { waitUntil: "domcontentloaded", timeout: 60000 }),
-      new Promise((_, reject) =>
-        setTimeout(() => reject(new Error("Page load timeout")), 60000)
-      ),
-    ]);
+    await page.goto(url, { waitUntil: "domcontentloaded", timeout: 60000 });
 
     await page.waitForTimeout(2000 + Math.random() * 3000);
 
@@ -574,4 +576,3 @@ const RunTasks = async () => {
 };
 
 RunTasks();
-
